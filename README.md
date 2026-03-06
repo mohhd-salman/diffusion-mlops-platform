@@ -298,11 +298,9 @@ Example payload:
 
 ## GPU plan (GKE + NVIDIA T4 + Spot)
 
-Your Terraform currently provisions:
+Terraform currently provisions:
 - a standard GKE cluster
 - a CPU node pool (e2-standard-2) for baseline workloads
-
-You also have an optional (commented) GPU node pool using:
 - n1-standard-4
 - nvidia-tesla-t4
 - spot = true
