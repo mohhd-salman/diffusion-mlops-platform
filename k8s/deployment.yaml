@@ -16,6 +16,12 @@ spec:
     spec:
       # nodeSelector:
       #   cloud.google.com/gke-nodepool: gpu-pool
+      
+      # tolerations:
+      # - key: "nvidia.com/gpu"
+      #   operator: "Exists"
+      #   effect: "NoSchedule"
+
       containers:
         - name: api
           image: ${PLACEHOLDER_IMAGE}
@@ -24,27 +30,29 @@ spec:
           env:
             - name: PORT
               value: "8081"
+
           readinessProbe:
             httpGet:
               path: /health
               port: 8081
-            initialDelaySeconds: 15
+            initialDelaySeconds: 120
             periodSeconds: 5
             timeoutSeconds: 2
             failureThreshold: 12
+          
           livenessProbe:
             httpGet:
               path: /health
               port: 8081
-            initialDelaySeconds: 60
+            initialDelaySeconds: 180
             periodSeconds: 10
             timeoutSeconds: 2
             failureThreshold: 6
+          
           resources:
             requests:
               cpu: "1"
               memory: "8Gi"
-              # nvidia.com/gpu: "1"
             limits:
               cpu: "2"
               memory: "12Gi"
