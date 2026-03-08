@@ -13,10 +13,8 @@ resource "google_container_cluster" "gke" {
   name     = var.cluster_name
   location = var.gcp_region
 
-  # We will create our own node pool
   remove_default_node_pool = true
   initial_node_count       = 1
-
   deletion_protection = false
 }
 
@@ -38,33 +36,31 @@ resource "google_container_node_pool" "cpu_pool" {
   }
 }
 
+# GPU Spot node pool
+resource "google_container_node_pool" "gpu_pool" {
+  name       = "gpu-pool"
+  location   = var.gcp_region
+  cluster    = google_container_cluster.gke.name
+  node_count = 1
 
-# resource "google_container_node_pool" "gpu_pool" {
-#   name       = "gpu-pool"
-#   location   = var.gcp_region
-#   cluster    = google_container_cluster.gke.name
-#   node_count = 1
+  node_config {
+    machine_type = "n1-standard-4"
+    disk_size_gb = 100
+    disk_type    = "pd-balanced"
 
-#   node_config {
-#     machine_type = "n1-standard-4" # Required for T4 GPUs
-#     disk_size_gb = 50              # Diffusion models need more disk space
+    guest_accelerator {
+      type  = "nvidia-tesla-t4"
+      count = 1
+      
+      gpu_driver_installation_config {
+        gpu_driver_version = "DEFAULT"
+      }
+    }
 
-#     guest_accelerator {
-#       type  = "nvidia-tesla-t4"
-#       count = 1
-#     }
+    spot = true
 
-#     # IMPORTANT: Required to allow the GPU drivers to function
-#     oauth_scopes = [
-#       "https://www.googleapis.com/auth/cloud-platform"
-#     ]
-
-#     # Use Spot instances to save ~70% of your $300 credit
-#     spot = true
-
-#     metadata = {
-#       install-nvidia-driver = "True"
-#       disable-legacy-endpoints = "true"
-#     }
-#   }
-# }
+    oauth_scopes = [
+      "https://www.googleapis.com/auth/cloud-platform"
+    ]
+  }
+}
