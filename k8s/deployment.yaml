@@ -19,7 +19,8 @@ spec:
       
       tolerations:
       - key: "nvidia.com/gpu"
-        operator: "Exists"
+        operator: "Equal"
+        value: "present"
         effect: "NoSchedule"
 
       containers:
@@ -30,25 +31,11 @@ spec:
           env:
             - name: PORT
               value: "8081"
+          
+          volumeMounts:
+          - name: dshm
+            mountPath: /dev/shm
 
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 8081
-            initialDelaySeconds: 120
-            periodSeconds: 5
-            timeoutSeconds: 2
-            failureThreshold: 12
-          
-          livenessProbe:
-            httpGet:
-              path: /health
-              port: 8081
-            initialDelaySeconds: 180
-            periodSeconds: 10
-            timeoutSeconds: 2
-            failureThreshold: 6
-          
           resources:
             requests:
               cpu: "1"
@@ -57,3 +44,14 @@ spec:
               cpu: "2"
               memory: "12Gi"
               nvidia.com/gpu: "1"
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8081
+            initialDelaySeconds: 120
+          
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory

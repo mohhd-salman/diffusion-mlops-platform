@@ -57,6 +57,16 @@ resource "google_container_node_pool" "gpu_pool" {
       }
     }
 
+    taint {
+      key    = "nvidia.com/gpu"
+      value  = "present"
+      effect = "NO_SCHEDULE"
+    }
+
+    labels = {
+      "cloud.google.com/gke-nodepool" = "gpu-pool"
+    }
+
     spot = true
 
     oauth_scopes = [

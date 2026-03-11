@@ -114,19 +114,19 @@ pipeline {
                 script {
                     withCredentials([file(credentialsId: 'gcp-service-account-key', variable: 'GCP_KEY_FILE')]) {
                         sh """
+                            echo "--- STEP: Authenticating with GCP ---"
                             gcloud auth activate-service-account --key-file="$GCP_KEY_FILE"
                             gcloud container clusters get-credentials ${GKE_CLUSTER} --zone ${GKE_LOCATION}
                             
-                            echo "Applying NVIDIA Driver Installer..."
+                            echo "--- STEP: Checking/Applying NVIDIA Drivers ---"
                             kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded.yaml
-                            
-                            echo "Applying NVIDIA Device Plugin..."
                             kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.17.1/deployments/static/nvidia-device-plugin.yml
                             
-                            echo "Waiting for GPU resources to register..."
-                            sleep 30
+                            echo "--- STEP: Verifying GPU Node Resources ---"
+                            # This lists the node and explicitly shows how many GPUs are allocatable
+                            kubectl get nodes -l cloud.google.com/gke-nodepool=gpu-pool -o custom-columns=NAME:.metadata.name,STATUS:.status.conditions[-1].type,GPU_ALLOCATABLE:.status.allocatable.'nvidia\.com/gpu'
                         """
-                        BUILD_LOG_MESSAGE = "GPU Drivers and Device Plugin verified."
+                        BUILD_LOG_MESSAGE = "GPU Infrastructure verified."
                     }
                 }
             }
@@ -138,15 +138,11 @@ pipeline {
                     withCredentials([file(credentialsId: 'gcp-service-account-key', variable: 'GCP_KEY_FILE')]) {
                         try {
                             sh """
-                                gcloud auth activate-service-account --key-file="$GCP_KEY_FILE"
-                                gcloud config set project ${GCP_PROJECT}
-                                gcloud container clusters get-credentials ${GKE_CLUSTER} --zone ${GKE_LOCATION}
-
-                                # Clone mlops-pipeline repo (this contains your k8s/ manifests)
+                                echo "--- STEP: Cloning Platform Manifests ---"
                                 rm -rf platform-manifests
                                 git clone --branch mlops_pipeline ${env.PIPELINE_REPO_URL} platform-manifests
 
-                                # Create the deployment dynamically using kubectl
+                                echo "--- STEP: Rendering Deployment Manifest ---"
                                 sed -e "s|\\\${MODEL_DEPLOYMENT_NAME}|${DEPLOY_NAME}|g" \
                                     -e "s|\\\${MODEL_SERVICE_NAME}|${SVC_NAME}|g" \
                                     -e "s|\\\${MODEL_APP_LABEL}|${APP_LABEL}|g" \
@@ -157,14 +153,25 @@ pipeline {
                                     -e "s|\\\${MODEL_APP_LABEL}|${APP_LABEL}|g" \
                                     platform-manifests/k8s/service.yaml > /tmp/service.rendered.yaml
 
+                                echo "--- STEP: Applying Resources to GKE ---"
                                 kubectl apply -f /tmp/deployment.rendered.yaml
                                 kubectl apply -f /tmp/service.rendered.yaml
 
-                                # Wait rollout
+                                echo "--- STEP: Waiting for Rollout (Up to 15 mins) ---"
                                 kubectl rollout status deploy/${DEPLOY_NAME} --timeout=900s
+
+                                echo "--- STEP: FETECHING APPLICATION LOGS ---"
+                                echo "Displaying the last 50 lines of container logs:"
+                                kubectl logs --tail=50 -l app=${APP_LABEL}
                             """
-                            BUILD_LOG_MESSAGE = "Applied Kubernetes resources (deployment and service)."
+                            BUILD_LOG_MESSAGE = "Deployment successful. Model is running on GPU."
                         } catch (e) {
+                            echo "!!! DEPLOYMENT FAILED !!!"
+                            echo "Fetching Pod Status and Events for debugging:"
+                            sh """
+                                kubectl get pods -l app=${APP_LABEL}
+                                kubectl describe pod -l app=${APP_LABEL} | grep -A 20 Events
+                            """
                             BUILD_LOG_MESSAGE = "Kubernetes deployment failed: ${e.getMessage()}"
                             throw e
                         }
