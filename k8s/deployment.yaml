@@ -19,8 +19,7 @@ spec:
       
       tolerations:
       - key: "nvidia.com/gpu"
-        operator: "Equal"
-        value: "present"
+        operator: "Exists"
         effect: "NoSchedule"
 
       containers:
