@@ -118,12 +118,15 @@ pipeline {
                             gcloud auth activate-service-account --key-file="$GCP_KEY_FILE"
                             gcloud container clusters get-credentials ${GKE_CLUSTER} --zone ${GKE_LOCATION}
                             
-                            echo "--- STEP: Checking/Applying NVIDIA Drivers ---"
-                            kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded.yaml
+                            echo "--- STEP: Checking/Applying NVIDIA Drivers (Ubuntu) ---"
+                            kubectl delete daemonset nvidia-driver-installer -n kube-system --ignore-not-found
+                            
+                            kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/ubuntu/daemonset-preloaded.yaml
+                            
                             kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.17.1/deployments/static/nvidia-device-plugin.yml
                             
                             echo "--- STEP: Verifying GPU Node Resources ---"
-                            sleep 10 
+                            sleep 20 
                             kubectl get nodes -l cloud.google.com/gke-nodepool=gpu-pool -o custom-columns=NAME:.metadata.name,STATUS:.status.conditions[-1].type,GPU_ALLOCATABLE:.status.allocatable.'nvidia\\.com/gpu'
                         """
                         BUILD_LOG_MESSAGE = "GPU Infrastructure verified."
