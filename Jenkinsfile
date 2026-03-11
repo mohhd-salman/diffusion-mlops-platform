@@ -109,23 +109,23 @@ pipeline {
             }
         }
 
-        // stage('Prepare GPU Drivers') {
-        //     steps {
-        //         script {
-        //             withCredentials([file(credentialsId: 'gcp-service-account-key', variable: 'GCP_KEY_FILE')]) {
-        //                 sh """
-        //                     gcloud auth activate-service-account --key-file="$GCP_KEY_FILE"
-        //                     gcloud container clusters get-credentials ${GKE_CLUSTER} --zone ${GKE_LOCATION}
+        stage('Prepare GPU Drivers') {
+            steps {
+                script {
+                    withCredentials([file(credentialsId: 'gcp-service-account-key', variable: 'GCP_KEY_FILE')]) {
+                        sh """
+                            gcloud auth activate-service-account --key-file="$GCP_KEY_FILE"
+                            gcloud container clusters get-credentials ${GKE_CLUSTER} --zone ${GKE_LOCATION}
                             
-        //                     # Install the NVIDIA Device Plugin (DaemonSet)
-        //                     # This allows K8s to schedule 'nvidia.com/gpu' resources
-        //                     kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded.yaml
-        //                 """
-        //                 BUILD_LOG_MESSAGE = "GPU Drivers verified/installed."
-        //             }
-        //         }
-        //     }
-        // }
+                            # Install the NVIDIA Device Plugin (DaemonSet)
+                            # This allows K8s to schedule 'nvidia.com/gpu' resources
+                            kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded.yaml
+                        """
+                        BUILD_LOG_MESSAGE = "GPU Drivers verified/installed."
+                    }
+                }
+            }
+        }
 
         stage('Apply K8s Resources') {
             steps {

@@ -14,13 +14,13 @@ spec:
       labels:
         app: ${MODEL_APP_LABEL}
     spec:
-      # nodeSelector:
-      #   cloud.google.com/gke-nodepool: gpu-pool
+      nodeSelector:
+        cloud.google.com/gke-nodepool: gpu-pool
       
-      # tolerations:
-      # - key: "nvidia.com/gpu"
-      #   operator: "Exists"
-      #   effect: "NoSchedule"
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
 
       containers:
         - name: api
@@ -56,4 +56,4 @@ spec:
             limits:
               cpu: "2"
               memory: "12Gi"
-              # nvidia.com/gpu: "1"
+              nvidia.com/gpu: "1"
