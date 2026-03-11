@@ -117,11 +117,16 @@ pipeline {
                             gcloud auth activate-service-account --key-file="$GCP_KEY_FILE"
                             gcloud container clusters get-credentials ${GKE_CLUSTER} --zone ${GKE_LOCATION}
                             
-                            # Install the NVIDIA Device Plugin (DaemonSet)
-                            # This allows K8s to schedule 'nvidia.com/gpu' resources
+                            echo "Applying NVIDIA Driver Installer..."
                             kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded.yaml
+                            
+                            echo "Applying NVIDIA Device Plugin..."
+                            kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.17.1/deployments/static/nvidia-device-plugin.yml
+                            
+                            echo "Waiting for GPU resources to register..."
+                            sleep 30
                         """
-                        BUILD_LOG_MESSAGE = "GPU Drivers verified/installed."
+                        BUILD_LOG_MESSAGE = "GPU Drivers and Device Plugin verified."
                     }
                 }
             }
