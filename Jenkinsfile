@@ -123,8 +123,8 @@ pipeline {
                             kubectl apply -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.17.1/deployments/static/nvidia-device-plugin.yml
                             
                             echo "--- STEP: Verifying GPU Node Resources ---"
-                            # This lists the node and explicitly shows how many GPUs are allocatable
-                            kubectl get nodes -l cloud.google.com/gke-nodepool=gpu-pool -o custom-columns=NAME:.metadata.name,STATUS:.status.conditions[-1].type,GPU_ALLOCATABLE:.status.allocatable.'nvidia\.com/gpu'
+                            sleep 10 
+                            kubectl get nodes -l cloud.google.com/gke-nodepool=gpu-pool -o custom-columns=NAME:.metadata.name,STATUS:.status.conditions[-1].type,GPU_ALLOCATABLE:.status.allocatable.'nvidia\\.com/gpu'
                         """
                         BUILD_LOG_MESSAGE = "GPU Infrastructure verified."
                     }
