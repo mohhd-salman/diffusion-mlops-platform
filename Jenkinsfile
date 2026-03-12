@@ -146,31 +146,31 @@ pipeline {
                                 git clone --branch mlops_pipeline ${env.PIPELINE_REPO_URL} platform-manifests
 
                                 echo "--- STEP: Rendering Deployment Manifest ---"
-                                sed -e "s|\\\${MODEL_DEPLOYMENT_NAME}|${DEPLOY_NAME}|g" \
-                                    -e "s|\\\${MODEL_SERVICE_NAME}|${SVC_NAME}|g" \
-                                    -e "s|\\\${MODEL_APP_LABEL}|${APP_LABEL}|g" \
-                                    -e "s|\\\${PLACEHOLDER_IMAGE}|${IMAGE}|g" \
-                                    platform-manifests/k8s/deployment.yaml > /tmp/deployment.rendered.yaml
+                                sed -i "s|\\\${MODEL_DEPLOYMENT_NAME}|${DEPLOY_NAME}|g" platform-manifests/k8s/deployment.yaml
+                                sed -i "s|\\\${MODEL_SERVICE_NAME}|${SVC_NAME}|g" platform-manifests/k8s/deployment.yaml
+                                sed -i "s|\\\${MODEL_APP_LABEL}|${APP_LABEL}|g" platform-manifests/k8s/deployment.yaml
+                                sed -i "s|\\\${PLACEHOLDER_IMAGE}|${IMAGE}|g" platform-manifests/k8s/deployment.yaml
 
-                                sed -e "s|\\\${MODEL_SERVICE_NAME}|${SVC_NAME}|g" \
-                                    -e "s|\\\${MODEL_APP_LABEL}|${APP_LABEL}|g" \
-                                    platform-manifests/k8s/service.yaml > /tmp/service.rendered.yaml
+                                sed -i "s|\\\${MODEL_SERVICE_NAME}|${SVC_NAME}|g" platform-manifests/k8s/service.yaml
+                                sed -i "s|\\\${MODEL_APP_LABEL}|${APP_LABEL}|g" platform-manifests/k8s/service.yaml
+
+                                echo "--- DEBUG: VERIFYING GPU LIMITS IN RENDERED YAML ---"
+                                grep -A 10 "resources:" platform-manifests/k8s/deployment.yaml
 
                                 echo "--- STEP: Applying Resources to GKE ---"
-                                kubectl apply -f /tmp/deployment.rendered.yaml
-                                kubectl apply -f /tmp/service.rendered.yaml
+                                kubectl apply -f platform-manifests/k8s/deployment.yaml
+                                kubectl apply -f platform-manifests/k8s/service.yaml
 
                                 echo "--- STEP: Waiting for Rollout (Up to 15 mins) ---"
                                 kubectl rollout status deploy/${DEPLOY_NAME} --timeout=900s
 
-                                echo "--- STEP: FETECHING APPLICATION LOGS ---"
-                                echo "Displaying the last 50 lines of container logs:"
+                                echo "--- STEP: FETCHING APPLICATION LOGS ---"
+                                sleep 5
                                 kubectl logs --tail=50 -l app=${APP_LABEL}
                             """
                             BUILD_LOG_MESSAGE = "Deployment successful. Model is running on GPU."
                         } catch (e) {
                             echo "!!! DEPLOYMENT FAILED !!!"
-                            echo "Fetching Pod Status and Events for debugging:"
                             sh """
                                 kubectl get pods -l app=${APP_LABEL}
                                 kubectl describe pod -l app=${APP_LABEL} | grep -A 20 Events
