@@ -1,10 +1,17 @@
 pipeline {
     agent any
+
+    parameters {
+        string(name: 'REPO_URL', defaultValue: '', description: 'GitHub Repository URL')
+        string(name: 'BRANCH_NAME', defaultValue: 'main', description: 'GitHub Branch Name')
+        string(name: 'DEPLOYMENT_ID', defaultValue: '', description: 'Unique Deployment ID')
+        password(name: 'GITHUB_TOKEN', defaultValue: '', description: 'User GitHub token')
+    }
+
     environment {
-        // Mock variables to simulate build values
-        DEPLOY_NAME = "debug-deploy-123"
-        SVC_NAME    = "debug-svc-123"
-        APP_LABEL   = "debug-app-123"
+        DEPLOY_NAME = "debug-deploy-${params.DEPLOYMENT_ID}"
+        SVC_NAME    = "debug-svc-${params.DEPLOYMENT_ID}"
+        APP_LABEL   = "debug-app-${params.DEPLOYMENT_ID}"
         IMAGE       = "us-central1-docker.pkg.dev/project/repo/image:debug"
         PIPELINE_REPO_URL = "${env.PIPELINE_REPO_URL}" 
     }
