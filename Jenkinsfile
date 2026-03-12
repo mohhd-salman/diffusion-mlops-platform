@@ -1,6 +1,7 @@
 pipeline {
     agent any
     environment {
+        // Mock variables to simulate build values
         DEPLOY_NAME = "debug-deploy-123"
         SVC_NAME    = "debug-svc-123"
         APP_LABEL   = "debug-app-123"
@@ -17,26 +18,22 @@ pipeline {
                         git clone --branch mlops_pipeline ${PIPELINE_REPO_URL} platform-manifests
 
                         echo "--- STEP 2: Rendering Standard Placeholders ---"
-                        # Note the triple backslash: one for Groovy, two for Shell
                         sed -i "s|\\\${MODEL_DEPLOYMENT_NAME}|${DEPLOY_NAME}|g" platform-manifests/k8s/deployment.yaml
                         sed -i "s|\\\${MODEL_SERVICE_NAME}|${SVC_NAME}|g" platform-manifests/k8s/deployment.yaml
                         sed -i "s|\\\${MODEL_APP_LABEL}|${APP_LABEL}|g" platform-manifests/k8s/deployment.yaml
                         sed -i "s|\\\${PLACEHOLDER_IMAGE}|${IMAGE}|g" platform-manifests/k8s/deployment.yaml
 
-                        echo "--- STEP 3: Forcing GPU Limit Insert ---"
-                        # This uses a safer replacement syntax to avoid the 'a' command's backslash issues
-                        # It looks for 'limits:' and replaces it with 'limits:' plus the GPU line
-                        sed -i 's/limits:/limits:\\n                nvidia.com\\/gpu: 1/' platform-manifests/k8s/deployment.yaml
+                        echo "--- STEP 3: Verification (Quick Checks) ---"
+                        echo ">>> Searching for GPU Limit:"
+                        grep "nvidia.com/gpu" platform-manifests/k8s/deployment.yaml || echo "RESULT: GPU Limit NOT FOUND"
 
-                        echo "--- STEP 4: FINAL VERIFICATION ---"
-                        echo ">>> Checking Resources Block:"
-                        grep -A 10 "resources:" platform-manifests/k8s/deployment.yaml
-                        
-                        echo ">>> Checking NodeSelector & Tolerations:"
-                        grep -E "nodeSelector|tolerations" -A 5 platform-manifests/k8s/deployment.yaml
-                        
-                        echo "--- FULL RENDERED FILE PREVIEW ---"
+                        echo ">>> Searching for NodeSelector:"
+                        grep "nodeSelector" platform-manifests/k8s/deployment.yaml || echo "RESULT: NodeSelector NOT FOUND"
+
+                        echo "--- STEP 4: FULL RENDERED YAML PREVIEW ---"
+                        echo "----------------------------------------------------"
                         cat platform-manifests/k8s/deployment.yaml
+                        echo "----------------------------------------------------"
                     """
                 }
             }
